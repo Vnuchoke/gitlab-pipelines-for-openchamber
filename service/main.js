@@ -68,8 +68,8 @@ function redact(text, token) {
 async function readCapped(response) {
   const reader = response.body?.getReader();
   if (!reader) {
-    const text2 = await response.text();
-    return text2.length > PROXY_BODY_MAX ? { text: text2.slice(0, PROXY_BODY_MAX), truncated: true } : { text: text2, truncated: false };
+    const text = await response.text();
+    return text.length > PROXY_BODY_MAX ? { text: text.slice(0, PROXY_BODY_MAX), truncated: true } : { text, truncated: false };
   }
   const decoder = new TextDecoder;
   let text = "";
@@ -171,10 +171,10 @@ function defaultConfig() {
 }
 function configPath(env, platform = process.platform) {
   if (platform === "win32") {
-    const base2 = env.APPDATA ?? env.USERPROFILE;
-    if (!base2)
+    const base = env.APPDATA ?? env.USERPROFILE;
+    if (!base)
       throw new Error("APPDATA is not set.");
-    return win32.join(base2, "gitlab-pipelines", "config.json");
+    return win32.join(base, "gitlab-pipelines", "config.json");
   }
   if (platform === "darwin") {
     if (!env.HOME)
@@ -905,22 +905,22 @@ async function route(request, deps) {
     if (method === "GET") {
       return json(200, { config: await readConfigRoute(deps.configFs, deps.configPath) });
     }
-    const body2 = await readJson(request);
-    if (!body2)
+    const body = await readJson(request);
+    if (!body)
       return json(400, { error: "invalid request body" });
-    const result2 = await writeConfigRoute(deps.configFs, deps.configPath, body2);
-    if (!result2.ok)
-      return json(400, { error: result2.error });
-    return json(200, { config: result2.view });
+    const result = await writeConfigRoute(deps.configFs, deps.configPath, body);
+    if (!result.ok)
+      return json(400, { error: result.error });
+    return json(200, { config: result.view });
   }
   if (url.pathname === TOKEN_ROUTE) {
-    const body2 = await readJson(request);
-    if (!body2)
+    const body = await readJson(request);
+    if (!body)
       return json(400, { error: "invalid request body" });
-    const result2 = await writeTokenRoute(deps.configFs, deps.configPath, body2);
-    if (!result2.ok)
-      return json(400, { error: result2.error });
-    return json(200, { config: result2.view });
+    const result = await writeTokenRoute(deps.configFs, deps.configPath, body);
+    if (!result.ok)
+      return json(400, { error: result.error });
+    return json(200, { config: result.view });
   }
   if (url.pathname === WATCH_ROUTE) {
     if (method === "GET") {
@@ -933,13 +933,13 @@ async function route(request, deps) {
     }
     if (method !== "PUT")
       return json(404, { error: "not found" });
-    const body2 = await readJson(request);
-    if (!body2)
+    const body = await readJson(request);
+    if (!body)
       return json(400, { error: "invalid request body" });
-    const result2 = await writeWatchRoute(deps.configFs, deps.configPath, body2);
-    if (!result2.ok)
-      return json(400, { error: result2.error });
-    return json(200, { watch: result2.watch });
+    const result = await writeWatchRoute(deps.configFs, deps.configPath, body);
+    if (!result.ok)
+      return json(400, { error: result.error });
+    return json(200, { watch: result.watch });
   }
   if (url.pathname === EVENTS_ROUTE) {
     if (method === "GET") {
@@ -949,39 +949,39 @@ async function route(request, deps) {
     }
     if (method !== "POST")
       return json(404, { error: "not found" });
-    const body2 = await readJson(request);
-    if (!body2)
+    const body = await readJson(request);
+    if (!body)
       return json(400, { error: "invalid request body" });
-    const result2 = await writeEventRoute(deps.configFs, deps.configPath, body2);
-    if (!result2.ok)
-      return json(400, { error: result2.error });
-    return json(200, { event: result2.event, recorded: result2.recorded });
+    const result = await writeEventRoute(deps.configFs, deps.configPath, body);
+    if (!result.ok)
+      return json(400, { error: result.error });
+    return json(200, { event: result.event, recorded: result.recorded });
   }
   if (url.pathname === EVENTS_SEEN_ROUTE) {
     if (method !== "PUT")
       return json(404, { error: "not found" });
-    const body2 = await readJson(request);
-    if (!body2)
+    const body = await readJson(request);
+    if (!body)
       return json(400, { error: "invalid request body" });
-    const result2 = await advanceSeenRoute(deps.configFs, deps.configPath, body2);
-    if (!result2.ok)
-      return json(400, { error: result2.error });
-    return json(200, { seen: result2.seen, unseen: result2.unseen });
+    const result = await advanceSeenRoute(deps.configFs, deps.configPath, body);
+    if (!result.ok)
+      return json(400, { error: result.error });
+    return json(200, { seen: result.seen, unseen: result.unseen });
   }
   if (url.pathname === GIT_CONFIG_ROUTE) {
-    let body2;
+    let body;
     try {
-      body2 = JSON.parse(await readBody(request));
+      body = JSON.parse(await readBody(request));
     } catch (error) {
       if (error instanceof BodyTooLargeError)
         throw error;
       return json(400, { error: "invalid request body" });
     }
-    const directory = typeof body2.directory === "string" ? body2.directory : "";
-    const result2 = await resolveGitConfig({ directory }, deps.gitConfigFs);
-    if (!result2.ok)
-      return json(404, { error: result2.error });
-    return json(200, { config: result2.config });
+    const directory = typeof body.directory === "string" ? body.directory : "";
+    const result = await resolveGitConfig({ directory }, deps.gitConfigFs);
+    if (!result.ok)
+      return json(404, { error: result.error });
+    return json(200, { config: result.config });
   }
   if (url.pathname !== PROXY_ROUTE)
     return json(404, { error: "not found" });
